@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "604502719348",
+    "project_id": "hudumaapp-30e21",
+    "storage_bucket": "hudumaapp-30e21.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:604502719348:android:3301c1da44a234e0720a21",
+        "android_client_info": {
+          "package_name": "com.example.huduma_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "604502719348-8484fqj4om46rhug41k0i3ul2aofljur.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.huduma_app",
+            "certificate_hash": "9ec9b0e4c67fa7912c3b7f692389d4f38ffb9b5f"
+          }
+        },
+        {
+          "client_id": "604502719348-1jdb5l5tj3qadpqtdnii8774075m8ofb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD64iB9UjXxEvvhADIpLPz_GJB7YOOFwvA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "604502719348-1jdb5l5tj3qadpqtdnii8774075m8ofb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

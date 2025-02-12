@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'profile_screen.dart';
 import 'cart_screen.dart';
+import 'shop_screen.dart';
+import 'orders_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -17,26 +19,31 @@ class _HomeScreenState extends State<HomeScreen> {
     "Groceries", "Electronics", "Clothing", "Beauty", "Furniture"
   ];
 
-  final List<String> stores = [
-    "SuperMart", "Tech Haven", "Fashion Hub", "Cosmetics Store", "Furniture World"
+  final List<Map<String, dynamic>> stores = [
+    {"name": "SuperMart", "image": "assets/store1.png"},
+    {"name": "Tech Haven", "image": "assets/store2.png"},
+    {"name": "Fashion Hub", "image": "assets/store3.png"},
+    {"name": "Cosmetics Store", "image": "assets/store4.png"},
+    {"name": "Furniture World", "image": "assets/store5.png"}
   ];
 
-  // Navigates to pages from the bottom nav bar
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Handle navigation based on selected index
-    switch (index) {
-      case 1:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => CartScreen()));
-        break;
-      case 3:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen()));
-        break;
-      default:
-        break;
+    if (_selectedIndex != index) {
+      setState(() => _selectedIndex = index);
+      switch (index) {
+        case 0:
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+          break;
+        case 1:
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ShopScreen()));
+          break;
+        case 2:
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrdersScreen()));
+          break;
+        case 3:
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen()));
+          break;
+      }
     }
   }
 
@@ -51,15 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           title: Row(
             children: [
-              // Profile Icon
               IconButton(
                 icon: const Icon(Icons.person, color: Colors.white),
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen()));
-                },
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen())),
               ),
-
-              // Search Bar
               Expanded(
                 child: Container(
                   height: 40,
@@ -76,112 +78,61 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-
-              // Shopping Cart Icon
               IconButton(
                 icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => CartScreen()));
-                },
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CartScreen())),
               ),
             ],
           ),
         ),
 
         // Main Body Content
-        body: Column(
-          children: [
-            const SizedBox(height: 10),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
 
-            // Categories (Circular Icons)
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  return AnimationConfiguration.staggeredList(
-                    position: index,
-                    duration: const Duration(milliseconds: 500),
-                    child: ScaleAnimation(
-                      child: FadeInAnimation(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Column(
-                            children: [
-                              Container(
-                                height: 60,
-                                width: 60,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    categories[index][0], // First letter of category
-                                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[900]),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(categories[index], style: const TextStyle(color: Colors.white)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Stores Grid (Animated Cards)
-            Expanded(
-              child: AnimationLimiter(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.1,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: stores.length,
+              // Categories Section (Circular Icons)
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categories.length,
                   itemBuilder: (context, index) {
-                    return AnimationConfiguration.staggeredGrid(
+                    return AnimationConfiguration.staggeredList(
                       position: index,
                       duration: const Duration(milliseconds: 500),
-                      columnCount: 2,
                       child: ScaleAnimation(
                         child: FadeInAnimation(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 8,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Column(
+                              children: [
+                                Container(
+                                  height: 60,
+                                  width: 60,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      categories[index][0], // First letter of category
+                                      style: TextStyle(
+                                          fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[900]),
+                                    ),
+                                  ),
                                 ),
+                                const SizedBox(height: 5),
+                                Text(categories[index], style: const TextStyle(color: Colors.white)),
                               ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                stores[index],
-                                style: GoogleFonts.lato(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue[900],
-                                ),
-                              ),
                             ),
                           ),
                         ),
@@ -190,8 +141,83 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 20),
+
+              // Stores Grid (Better UI with Cards)
+              Expanded(
+                child: AnimationLimiter(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.8,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: stores.length,
+                    itemBuilder: (context, index) {
+                      return AnimationConfiguration.staggeredGrid(
+                        position: index,
+                        duration: const Duration(milliseconds: 500),
+                        columnCount: 2,
+                        child: ScaleAnimation(
+                          child: FadeInAnimation(
+                            child: GestureDetector(
+                              onTap: () {
+                                // Add navigation to store details
+                              },
+                              child: Card(
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(15),
+                                        topRight: Radius.circular(15),
+                                      ),
+                                      child: Image.asset(
+                                        stores[index]["image"],
+                                        height: 100,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      stores[index]["name"],
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.lato(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[900],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue[900],
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      onPressed: () {},
+                                      child: const Text("Explore", style: TextStyle(color: Colors.white)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
 
         // Bottom Navigation Bar

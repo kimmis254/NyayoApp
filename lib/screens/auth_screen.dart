@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter/services.dart';
@@ -13,12 +14,14 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool isLogin = true;
   String email = '';
   String password = '';
   String errorMessage = '';
   bool isLoading = false;
+
   Color bgColor1 = Colors.blue[900]!;
   Color bgColor2 = Colors.blue[700]!;
 
@@ -28,7 +31,6 @@ class _AuthScreenState extends State<AuthScreen> {
     _animateBackground();
   }
 
-  // Background color animation
   void _animateBackground() async {
     while (mounted) {
       await Future.delayed(const Duration(seconds: 3));
@@ -39,34 +41,43 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // Redirect user to HomeScreen
   void _navigateToHome() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => HomeScreen()),
-    );
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
   }
 
-  // Handle Authentication (Email/Password)
+  Future<void> _saveUserToFirestore(User user) async {
+    DocumentReference userRef = _firestore.collection("users").doc(user.uid);
+    DocumentSnapshot userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      await userRef.set({
+        "fullName": user.displayName ?? "Not Set",
+        "email": user.email ?? "Not Set",
+        "phoneNumber": user.phoneNumber ?? "Not Set",
+        "profileImage": user.photoURL ?? "",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
   Future<void> _authenticate() async {
     setState(() => isLoading = true);
     try {
+      UserCredential userCredential;
       if (isLogin) {
-        await _auth.signInWithEmailAndPassword(email: email, password: password);
+        userCredential = await _auth.signInWithEmailAndPassword(email: email, password: password);
       } else {
-        await _auth.createUserWithEmailAndPassword(email: email, password: password);
+        userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+        await _saveUserToFirestore(userCredential.user!);
       }
-      _navigateToHome(); // Redirect after login
-    } on FirebaseAuthException catch (error) {
-      setState(() {
-        errorMessage = _getFriendlyErrorMessage(error.code);
-      });
+      _navigateToHome();
+    } catch (error) {
+      setState(() => errorMessage = "Authentication failed. Please try again.");
     } finally {
       setState(() => isLoading = false);
     }
   }
 
-  // Handle Google Sign-In
   Future<void> _signInWithGoogle() async {
     setState(() => isLoading = true);
     try {
@@ -76,30 +87,13 @@ class _AuthScreenState extends State<AuthScreen> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      await _auth.signInWithCredential(credential);
-      _navigateToHome(); // Redirect after Google login
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      await _saveUserToFirestore(userCredential.user!);
+      _navigateToHome();
     } catch (error) {
       setState(() => errorMessage = "Google Sign-In failed. Try again.");
     } finally {
       setState(() => isLoading = false);
-    }
-  }
-
-  // Convert Firebase error codes to user-friendly messages
-  String _getFriendlyErrorMessage(String code) {
-    switch (code) {
-      case 'invalid-email':
-        return "Invalid email format.";
-      case 'user-not-found':
-        return "No account found with this email.";
-      case 'wrong-password':
-        return "Incorrect password. Try again.";
-      case 'email-already-in-use':
-        return "This email is already registered.";
-      case 'weak-password':
-        return "Password should be at least 6 characters.";
-      default:
-        return "An unexpected error occurred. Try again.";
     }
   }
 
@@ -124,25 +118,18 @@ class _AuthScreenState extends State<AuthScreen> {
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 500),
                 child: isLoading
-                    ? const SpinKitThreeBounce(color: Colors.white, size: 40.0) // Loading Animation
+                    ? const SpinKitThreeBounce(color: Colors.white, size: 40.0)
                     : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // App Icon
                     const Icon(Icons.lock, size: 80, color: Colors.white),
-
                     const SizedBox(height: 10),
-
-                    // Auth Mode Title
                     Text(
                       isLogin ? "Welcome Back!" : "Create an Account",
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Email Input
                     TextField(
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
@@ -153,17 +140,10 @@ class _AuthScreenState extends State<AuthScreen> {
                           borderSide: const BorderSide(color: Colors.white),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.white, width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                       ),
                       onChanged: (val) => setState(() => email = val),
                     ),
-
                     const SizedBox(height: 15),
-
-                    // Password Input
                     TextField(
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
@@ -174,27 +154,17 @@ class _AuthScreenState extends State<AuthScreen> {
                           borderSide: const BorderSide(color: Colors.white),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.white, width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                       ),
                       obscureText: true,
                       onChanged: (val) => setState(() => password = val),
                     ),
-
                     const SizedBox(height: 15),
-
-                    // Error Message
                     if (errorMessage.isNotEmpty)
                       Text(
                         errorMessage,
                         style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                       ),
-
                     const SizedBox(height: 20),
-
-                    // Sign In / Sign Up Button
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -207,10 +177,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    // Switch between Login & Sign Up
                     TextButton(
                       onPressed: () => setState(() => isLogin = !isLogin),
                       child: Text(
@@ -218,10 +185,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         style: const TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    // Google Sign-In Button
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -233,7 +197,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Image.asset('assets/google-logo.png', height: 24), // Fix asset name
+                          Image.asset('assets/google-logo.png', height: 24),
                           const SizedBox(width: 10),
                           const Text(
                             'Sign in with Google',

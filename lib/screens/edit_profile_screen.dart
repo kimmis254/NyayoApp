@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'home_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -9,12 +13,17 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
   User? _user;
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isGoogleUser = false;
   bool _isSaving = false;
+  String _profileImageUrl = "";
+  File? _imageFile;
 
   @override
   void initState() {
@@ -23,9 +32,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _isGoogleUser = _user?.providerData.any((info) => info.providerId == "google.com") ?? false;
 
     if (_user != null) {
-      _nameController.text = _user!.displayName ?? "";
-      _phoneController.text = _user!.phoneNumber ?? "";
+      _fetchUserData();
     }
+  }
+
+  // Fetch user details from Firestore
+  Future<void> _fetchUserData() async {
+    DocumentSnapshot userDoc = await _firestore.collection("users").doc(_user!.uid).get();
+
+    if (userDoc.exists) {
+      setState(() {
+        _nameController.text = userDoc["fullName"] ?? "";
+        _phoneController.text = userDoc["phoneNumber"] ?? "";
+        _profileImageUrl = userDoc["profileImage"] ?? "";
+      });
+    }
+  }
+
+  // Pick Image from Gallery
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 50);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      await _uploadProfileImage();
+    }
+  }
+
+  // Upload Profile Image to Firebase Storage
+  Future<void> _uploadProfileImage() async {
+    if (_imageFile == null) return;
+
+    String fileName = "profile_${_user!.uid}.jpg";
+    Reference ref = _storage.ref().child("profile_images").child(fileName);
+    UploadTask uploadTask = ref.putFile(_imageFile!);
+
+    await uploadTask.whenComplete(() async {
+      String imageUrl = await ref.getDownloadURL();
+      await _firestore.collection("users").doc(_user!.uid).update({"profileImage": imageUrl});
+      setState(() {
+        _profileImageUrl = imageUrl;
+      });
+    });
   }
 
   // Save Profile Changes
@@ -33,8 +83,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // Update Firebase Auth Profile
       await _user?.updateDisplayName(_nameController.text);
-      await _user?.updatePhoneNumber(_phoneController.text as PhoneAuthCredential);
+
+      // Update Firestore User Data
+      await _firestore.collection("users").doc(_user!.uid).update({
+        "fullName": _nameController.text,
+        "phoneNumber": _phoneController.text,
+      });
 
       setState(() {
         _user = _auth.currentUser;
@@ -107,11 +163,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
             // Profile Picture
             Center(
-              child: CircleAvatar(
-                radius: 50,
-                backgroundImage: _user?.photoURL != null
-                    ? NetworkImage(_user!.photoURL!)
-                    : const AssetImage('assets/default_profile.png') as ImageProvider,
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundImage: _profileImageUrl.isNotEmpty
+                          ? NetworkImage(_profileImageUrl)
+                          : const AssetImage('assets/default_profile.png') as ImageProvider,
+                    ),
+                    const CircleAvatar(
+                      radius: 15,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.camera_alt, color: Colors.blue),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -188,7 +257,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // Helper function to create text fields
   Widget _buildTextField(String label, TextEditingController controller, IconData icon, bool editable, {bool obscureText = false}) {
     return TextField(
       controller: controller,
@@ -199,14 +267,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white),
         prefixIcon: Icon(icon, color: Colors.white),
-        enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white, width: 2),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
